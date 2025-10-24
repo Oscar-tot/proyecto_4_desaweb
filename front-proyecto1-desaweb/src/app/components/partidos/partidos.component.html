@@ -1,0 +1,420 @@
+<div class="partidos-container">
+  <!-- Barra de acciones -->
+  <div class="actions-bar">
+    <div class="view-toggles">
+      <button class="btn btn-secondary" [class.active]="vistaActiva === 'partidos'" (click)="cambiarVista('partidos')">
+        <i class="fas fa-play"></i>
+        Partidos Activos
+      </button>
+      <button class="btn btn-secondary" [class.active]="vistaActiva === 'historial'" (click)="cambiarVista('historial')">
+        <i class="fas fa-history"></i>
+        Historial
+      </button>
+    </div>
+    <button class="btn btn-primary btn-create" (click)="openCreateModal()">
+      <i class="fas fa-plus"></i>
+      Nuevo Partido
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  @if (vistaActiva === 'partidos') {
+    <div class="filters-section">
+      <div class="filters-grid">
+      <div class="filter-group">
+        <label>Equipos:</label>
+        <input type="text" [(ngModel)]="filtroEquipo" placeholder="Buscar por equipo..." class="form-control">
+      </div>
+      
+      <div class="filter-group">
+        <label>Estado:</label>
+        <select [(ngModel)]="filtroEstado" class="form-control">
+          <option value="">Todos los estados</option>
+          <option value="PROGRAMADO">Programado</option>
+          <option value="EN_JUEGO">En Juego</option>
+          <option value="PAUSADO">Pausado</option>
+          <option value="FINALIZADO">Finalizado</option>
+        </select>
+      </div>
+    </div>
+    
+      <button class="btn btn-secondary btn-clear" (click)="limpiarFiltros()">
+        <i class="fas fa-times"></i>
+        Limpiar Filtros
+      </button>
+    </div>
+  }
+
+  <!-- Error Message -->
+  @if (error) {
+    <div class="alert alert-error">
+      <i class="fas fa-exclamation-triangle"></i>
+      {{error}}
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (isLoading) {
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Cargando partidos...</p>
+    </div>
+  }
+
+  <!-- Vista de Partidos Activos -->
+  @if (!isLoading && vistaActiva === 'partidos') {
+    <div class="partidos-grid">
+      @for (partido of partidosFiltrados; track partido.id) {
+        <div class="partido-card">
+          <!-- Header del partido -->
+          <div class="partido-header">
+            <div class="teams-vs">
+              <div class="team-name">{{partido.equipoLocalNombre}}</div>
+              <div class="vs-divider">VS</div>
+              <div class="team-name">{{partido.equipoVisitanteNombre}}</div>
+            </div>
+            <div class="partido-status" [class]="'status-' + partido.estado.toLowerCase()">
+              {{partido.estado}}
+            </div>
+          </div>
+
+          <!-- Información del partido -->
+          <div class="partido-info">
+            <div class="info-row">
+              <i class="fas fa-calendar"></i>
+              <span>Programado: {{partido.fechaPartido | date:'dd/MM/yyyy HH:mm'}}</span>
+            </div>
+            @if (partido.fechaFinalizacion && partido.estado.toLowerCase() === 'finalizado') {
+              <div class="info-row">
+                <i class="fas fa-flag-checkered"></i>
+                <span>Finalizado: {{partido.fechaFinalizacion | date:'dd/MM/yyyy HH:mm'}}</span>
+              </div>
+            }
+            @if (partido.marcador) {
+              <div class="info-row">
+                <i class="fas fa-trophy"></i>
+                <span>{{partido.marcador}}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Acciones -->
+          <div class="partido-actions">
+            <button class="btn btn-sm btn-info" (click)="verRoster(partido)" title="Ver Roster">
+              <i class="fas fa-users"></i>
+              Roster
+            </button>
+            @if (partido.estado.toLowerCase() === 'programado') {
+              <button class="btn btn-sm btn-success" 
+                      (click)="iniciarPartido(partido.id)" 
+                      title="Iniciar Partido y ir al Marcador">
+                <i class="fas fa-play"></i>
+                INICIAR PARTIDO
+              </button>
+            }
+           
+            <button class="btn btn-sm btn-danger" (click)="eliminarPartido(partido)" title="Eliminar">
+              <i class="fas fa-trash"></i>
+              Eliminar
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Empty State -->
+      @if (partidosFiltrados.length === 0) {
+        <div class="empty-state">
+          <i class="fas fa-basketball-ball"></i>
+          <h3>No hay partidos</h3>
+          @if (filtroEquipo || filtroEstado) {
+            <p>No se encontraron partidos con los filtros aplicados.</p>
+          }
+          @if (!filtroEquipo && !filtroEstado) {
+            <p>Aún no has creado partidos en el sistema.</p>
+            <button class="btn btn-primary" (click)="openCreateModal()">
+              <i class="fas fa-plus"></i>
+              Crear Primer Partido
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Vista de Historial -->
+  @if (!isLoading && vistaActiva === 'historial') {
+    <div class="historial-grid">
+      @for (partido of historialPartidos; track partido.id) {
+        <div class="partido-card historial-card">
+          <div class="partido-header">
+            <div class="teams-vs">
+              <div class="team-name">{{partido.equipoLocalNombre}}</div>
+              <div class="vs-divider">VS</div>
+              <div class="team-name">{{partido.equipoVisitanteNombre}}</div>
+            </div>
+            <div class="partido-resultado">
+              {{partido.marcador}}
+            </div>
+          </div>
+
+          <div class="partido-info">
+            <div class="info-row">
+              <i class="fas fa-calendar"></i>
+              <span>{{partido.fechaPartido | date:'dd/MM/yyyy HH:mm'}}</span>
+            </div>
+            @if (partido.fechaFinalizacion) {
+              <div class="info-row">
+                <i class="fas fa-flag-checkered"></i>
+                <span>{{partido.fechaFinalizacion | date:'dd/MM/yyyy HH:mm'}}</span>
+              </div>
+            }
+          </div>
+
+          <div class="partido-actions">
+            <button class="btn btn-sm btn-info" (click)="verRoster(partido)" title="Ver Roster">
+              <i class="fas fa-users"></i>
+              Ver Roster
+            </button>
+            @if (partido.estado.toLowerCase() === 'programado') {
+              <button class="btn btn-sm btn-success" 
+                      (click)="iniciarPartido(partido.id)" 
+                      title="Iniciar Partido y ir al Marcador">
+                <i class="fas fa-play"></i>
+                INICIAR PARTIDO
+              </button>
+            }
+            @if (partido.estado.toLowerCase() === 'en_curso' || partido.estado.toLowerCase() === 'pausado') {
+              <button class="btn btn-sm btn-warning" 
+                      (click)="abrirMarcador(partido.id)" 
+                      title="Ver Marcador">
+                <i class="fas fa-chart-line"></i>
+                Marcador
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      @if (historialPartidos.length === 0) {
+        <div class="empty-state">
+          <i class="fas fa-history"></i>
+          <h3>Sin historial</h3>
+          <p>No hay partidos finalizados en el historial.</p>
+        </div>
+      }
+    </div>
+  }
+
+<!-- Modal para Crear Partido -->
+@if (showCreateModal) {
+  <div class="modal-overlay" (click)="closeCreateModal()">
+    <div class="modal-container modal-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Crear Nuevo Partido</h2>
+        <button class="btn-close" (click)="closeCreateModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="partidoForm" (ngSubmit)="onSubmit()" class="modal-body">
+        <div class="form-section">
+          <h3>Información del Partido</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="equipoLocalId">Equipo Local *</label>
+              <select 
+                id="equipoLocalId" 
+                formControlName="equipoLocalId" 
+                (change)="onEquipoLocalChange(+$any($event.target).value)"
+                class="form-control"
+                [class.error]="partidoForm.get('equipoLocalId')?.invalid && partidoForm.get('equipoLocalId')?.touched">
+                <option value="">Seleccionar equipo local</option>
+                @for (equipo of equipos; track equipo.id) {
+                  <option [value]="equipo.id">{{equipo.nombre}}</option>
+                }
+              </select>
+              @if (partidoForm.get('equipoLocalId')?.invalid && partidoForm.get('equipoLocalId')?.touched) {
+                <div class="error-message">
+                  @if (partidoForm.get('equipoLocalId')?.errors?.['required']) {
+                    <span>El equipo local es requerido</span>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="form-group">
+              <label for="equipoVisitanteId">Equipo Visitante *</label>
+              <select 
+                id="equipoVisitanteId" 
+                formControlName="equipoVisitanteId" 
+                (change)="onEquipoVisitanteChange(+$any($event.target).value)"
+                class="form-control"
+                [class.error]="partidoForm.get('equipoVisitanteId')?.invalid && partidoForm.get('equipoVisitanteId')?.touched">
+                <option value="">Seleccionar equipo visitante</option>
+                @for (equipo of equipos; track equipo.id) {
+                  <option [value]="equipo.id" [disabled]="equipo.id === +partidoForm.get('equipoLocalId')?.value">
+                    {{equipo.nombre}}
+                  </option>
+                }
+              </select>
+              @if (partidoForm.get('equipoVisitanteId')?.invalid && partidoForm.get('equipoVisitanteId')?.touched) {
+                <div class="error-message">
+                  @if (partidoForm.get('equipoVisitanteId')?.errors?.['required']) {
+                    <span>El equipo visitante es requerido</span>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="form-group">
+              <label for="fechaPartido">Fecha y Hora del Partido *</label>
+              <input 
+                type="datetime-local" 
+                id="fechaPartido" 
+                formControlName="fechaPartido" 
+                class="form-control"
+                [class.error]="partidoForm.get('fechaPartido')?.invalid && partidoForm.get('fechaPartido')?.touched">
+              @if (partidoForm.get('fechaPartido')?.invalid && partidoForm.get('fechaPartido')?.touched) {
+                <div class="error-message">
+                  @if (partidoForm.get('fechaPartido')?.errors?.['required']) {
+                    <span>La fecha del partido es requerida</span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Selección de Roster -->
+        @if (equipoLocalId && equipoVisitanteId) {
+          <div class="form-section">
+        <h3>Selección de Jugadores (Opcional)</h3>
+        <div class="roster-selection">
+          <!-- Equipo Local -->
+          <div class="team-roster">
+            <h4>{{getEquipoNombre(equipoLocalId)}} (Local)</h4>
+            <div class="jugadores-list">
+              @for (jugador of getJugadoresByEquipo(equipoLocalId); track jugador.id) {
+                <div class="jugador-item">
+                  <label class="jugador-checkbox">
+                    <input 
+                      type="checkbox" 
+                      [checked]="jugador.id !== undefined && jugadoresLocalSeleccionados.includes(jugador.id)"
+                      (change)="jugador.id !== undefined && toggleJugadorLocal(jugador.id)">
+                    <span class="checkmark"></span>
+                    <span class="jugador-info">
+                      <strong>#{{jugador.numero}}</strong> {{jugador.nombreCompleto}}
+                      <small>({{jugador.posicion}})</small>
+                    </span>
+                  </label>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Equipo Visitante -->
+          <div class="team-roster">
+            <h4>{{getEquipoNombre(equipoVisitanteId)}} (Visitante)</h4>
+            <div class="jugadores-list">
+              @for (jugador of getJugadoresByEquipo(equipoVisitanteId); track jugador.id) {
+                <div class="jugador-item">
+                  <label class="jugador-checkbox">
+                    <input 
+                      type="checkbox" 
+                      [checked]="jugador.id !== undefined && jugadoresVisitanteSeleccionados.includes(jugador.id)"
+                      (change)="jugador.id !== undefined && toggleJugadorVisitante(jugador.id)">
+                    <span class="checkmark"></span>
+                    <span class="jugador-info">
+                      <strong>#{{jugador.numero}}</strong> {{jugador.nombreCompleto}}
+                      <small>({{jugador.posicion}})</small>
+                    </span>
+                  </label>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+      }
+
+      @if (error) {
+        <div class="alert alert-error">
+          <i class="fas fa-exclamation-triangle"></i>
+          {{error}}
+        </div>
+      }
+    </form>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeCreateModal()" [disabled]="isLoading">
+        Cancelar
+      </button>
+      <button type="submit" class="btn btn-primary" (click)="onSubmit()" [disabled]="!partidoForm.valid || isLoading">
+        @if (isLoading) {
+          <span class="loading-spinner-small"></span>
+        }
+        Crear Partido
+      </button>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Modal para Ver Roster -->
+@if (showRosterModal) {
+  <div class="modal-overlay" (click)="closeRosterModal()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Roster del Partido</h2>
+        <button class="btn-close" (click)="closeRosterModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    
+
+      @if (partidoSeleccionado) {
+        <div class="modal-body">
+      <div class="partido-info-header">
+        <h3>{{partidoSeleccionado.equipoLocalNombre}} vs {{partidoSeleccionado.equipoVisitanteNombre}}</h3>
+        <p>{{partidoSeleccionado.fechaPartido | date:'dd/MM/yyyy HH:mm'}}</p>
+      </div>
+
+      <div class="roster-display">
+        @if (roster.length === 0) {
+          <div class="empty-roster">
+            <i class="fas fa-users-slash"></i>
+            <p>No hay jugadores asignados al roster de este partido</p>
+          </div>
+        }
+
+        @if (roster.length > 0) {
+          <div class="roster-grid">
+            @for (jugador of roster; track jugador.nombreCompleto) {
+              <div class="roster-item">
+                <div class="jugador-avatar">
+                  <i class="fas fa-user"></i>
+                </div>
+                <div class="jugador-details">
+                  <h4>#{{jugador.numero}} {{jugador.nombreCompleto}}</h4>
+                  <p>{{jugador.equipoNombre}}</p>
+                  @if (jugador.esTitular) {
+                    <span class="titular-badge">Titular</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+        </div>
+      }
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeRosterModal()">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+

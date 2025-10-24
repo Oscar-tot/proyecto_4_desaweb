@@ -1,0 +1,449 @@
+<div class="jugadores-container">
+  <!-- Barra de acciones -->
+  <div class="actions-bar">
+    <div class="subtitle-text">
+      @if (!mostrarInactivos) {
+        Administra los jugadores de todos los equipos
+      } @else {
+        Jugadores inactivos - Puedes reactivarlos cuando quieras
+      }
+    </div>
+    <div class="actions-buttons">
+      <button class="btn btn-toggle" [class.active]="mostrarInactivos" (click)="toggleVistaInactivos()">
+        @if (!mostrarInactivos) {
+          <i class="fas fa-eye-slash"></i>
+          Ver Inactivos
+        } @else {
+          <i class="fas fa-eye"></i>
+          Ver Activos
+        }
+      </button>
+      @if (!mostrarInactivos) {
+        <button class="btn btn-primary btn-create" (click)="openCreateModal()">
+          <i class="fas fa-plus"></i>
+          Nuevo Jugador
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-section">
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label>Equipo:</label>
+        <select [(ngModel)]="filtroEquipo" class="form-control">
+          <option value="">Todos los equipos</option>
+          @for (equipo of equipos; track equipo.id) {
+            <option [value]="equipo.nombre">
+              {{equipo.nombre}}
+            </option>
+          }
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Nombre:</label>
+        <input type="text" [(ngModel)]="filtroNombre" placeholder="Buscar por nombre..." class="form-control">
+      </div>
+      
+      <div class="filter-group">
+        <label>Número:</label>
+        <input type="text" [(ngModel)]="filtroNumero" placeholder="Número..." class="form-control">
+      </div>
+      
+      <div class="filter-group">
+        <label>Posición:</label>
+        <select [(ngModel)]="filtroPosicion" class="form-control">
+          <option value="">Todas las posiciones</option>
+          @for (pos of posiciones; track pos) {
+            <option [value]="pos">{{pos}}</option>
+          }
+        </select>
+      </div>
+    </div>
+    
+    <button class="btn btn-secondary btn-clear" (click)="limpiarFiltros()">
+      <i class="fas fa-times"></i>
+      Limpiar Filtros
+    </button>
+  </div>
+
+  <!-- Error Message -->
+  @if (error) {
+    <div class="alert alert-error">
+      <i class="fas fa-exclamation-triangle"></i>
+      {{error}}
+    </div>
+  }
+
+  <!-- Loading -->
+  @if (isLoading) {
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Cargando jugadores...</p>
+    </div>
+  }
+
+  <!-- Jugadores Grid -->
+  @if (!isLoading) {
+    <div class="jugadores-grid">
+      @for (jugador of jugadoresFiltrados; track trackByJugador($index, jugador)) {
+        <div class="jugador-card">
+          <!-- Foto del jugador -->
+          <div class="jugador-photo">
+            @if (jugador.foto) {
+              <img [src]="getImageUrl(jugador.foto)" [alt]="jugador.nombreCompleto" class="player-image">
+            } @else {
+              <div class="player-placeholder">
+                <i class="fas fa-user"></i>
+              </div>
+            }
+            <div class="numero-badge">#{{jugador.numero}}</div>
+          </div>
+
+          <!-- Información del jugador -->
+          <div class="jugador-info">
+            <h3 class="jugador-name">{{jugador.nombreCompleto}}</h3>
+            <div class="jugador-details">
+              <div class="detail-row">
+                <i class="fas fa-basketball-ball"></i>
+                <span>{{jugador.posicion}}</span>
+              </div>
+              <div class="detail-row">
+                <i class="fas fa-shield-alt"></i>
+                <span>{{jugador.equipo?.nombre || jugador.equipoNombre || 'Sin equipo'}}</span>
+              </div>
+              <div class="detail-row">
+                <i class="fas fa-ruler-vertical"></i>
+                <span>{{jugador.estatura}}m</span>
+              </div>
+              <div class="detail-row">
+                <i class="fas fa-birthday-cake"></i>
+                <span>{{jugador.edad || 'N/A'}} años</span>
+              </div>
+              <div class="detail-row">
+                <i class="fas fa-flag"></i>
+                <span>{{jugador.nacionalidad || 'N/A'}}</span>
+              </div>
+            </div>
+            
+            <!-- Status Badge -->
+            <div class="status-badge" [class.active]="jugador.isActivo !== false" [class.inactive]="jugador.isActivo === false">
+              {{jugador.isActivo !== false ? 'Activo' : 'Inactivo'}}
+            </div>
+          </div>
+
+          <!-- Acciones -->
+          <div class="jugador-actions">
+            @if (!mostrarInactivos) {
+              <!-- Vista de jugadores activos -->
+              <button class="btn btn-sm btn-secondary" (click)="openEditModal(jugador)" title="Editar">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-danger" (click)="openDeleteModal(jugador)" title="Desactivar">
+                <i class="fas fa-ban"></i>
+              </button>
+            } @else {
+              <!-- Vista de jugadores inactivos -->
+              <button class="btn btn-sm btn-success" (click)="reactivarJugador(jugador)" title="Reactivar">
+                <i class="fas fa-check-circle"></i>
+                Reactivar
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Empty State -->
+      @if (jugadoresFiltrados.length === 0) {
+        <div class="empty-state">
+          <i class="fas fa-users"></i>
+          @if (!mostrarInactivos) {
+            <h3>No hay jugadores</h3>
+            @if (filtroEquipo || filtroNombre || filtroNumero || filtroPosicion) {
+              <p>No se encontraron jugadores con los filtros aplicados.</p>
+            } @else {
+              <p>Aún no has agregado jugadores al sistema.</p>
+              <button class="btn btn-primary" (click)="openCreateModal()">
+                <i class="fas fa-plus"></i>
+                Agregar Primer Jugador
+              </button>
+            }
+          } @else {
+            <h3>No hay jugadores inactivos</h3>
+            <p>Todos los jugadores están activos en el sistema.</p>
+            <button class="btn btn-secondary" (click)="toggleVistaInactivos()">
+              <i class="fas fa-eye"></i>
+              Ver Jugadores Activos
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Modal para Crear/Editar Jugador -->
+@if (showModal) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{isEditing ? 'Editar Jugador' : 'Nuevo Jugador'}}</h2>
+        <button class="btn-close" (click)="closeModal()" title="Cerrar">
+          <i class="material-icons">close</i>
+        </button>
+      </div>
+
+      <form [formGroup]="jugadorForm" (ngSubmit)="onSubmit()" class="modal-body">
+        <div class="form-grid">
+          <!-- Nombre Completo -->
+          <div class="form-group">
+            <label for="nombreCompleto">Nombre Completo *</label>
+            <input 
+              type="text" 
+              id="nombreCompleto" 
+              formControlName="nombreCompleto" 
+              class="form-control"
+
+              [class.error]="jugadorForm.get('nombreCompleto')?.invalid && jugadorForm.get('nombreCompleto')?.touched">
+            @if (jugadorForm.get('nombreCompleto')?.invalid && jugadorForm.get('nombreCompleto')?.touched) {
+              <div class="error-message">
+                @if (jugadorForm.get('nombreCompleto')?.errors?.['required']) {
+                  <span>El nombre es requerido</span>
+                }
+                @if (jugadorForm.get('nombreCompleto')?.errors?.['minlength']) {
+                  <span>Mínimo 2 caracteres</span>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Número -->
+          <div class="form-group">
+            <label for="numero">Número *</label>
+            <input 
+              type="number" 
+              id="numero" 
+              formControlName="numero" 
+              class="form-control"
+
+              min="0" 
+              max="99"
+              [class.error]="jugadorForm.get('numero')?.invalid && jugadorForm.get('numero')?.touched">
+            @if (jugadorForm.get('numero')?.invalid && jugadorForm.get('numero')?.touched) {
+              <div class="error-message">
+                @if (jugadorForm.get('numero')?.errors?.['required']) {
+                  <span>El número es requerido</span>
+                }
+                @if (jugadorForm.get('numero')?.errors?.['min'] || jugadorForm.get('numero')?.errors?.['max']) {
+                  <span>Entre 0 y 99</span>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Posición -->
+          <div class="form-group">
+            <label for="posicion">Posición *</label>
+            <select 
+              id="posicion" 
+              formControlName="posicion" 
+              class="form-control"
+              [class.error]="jugadorForm.get('posicion')?.invalid && jugadorForm.get('posicion')?.touched">
+              <option value="">Seleccionar posición</option>
+              @for (pos of posiciones; track pos) {
+                <option [value]="pos">{{pos}}</option>
+              }
+            </select>
+            @if (jugadorForm.get('posicion')?.invalid && jugadorForm.get('posicion')?.touched) {
+              <div class="error-message">
+                @if (jugadorForm.get('posicion')?.errors?.['required']) {
+                  <span>La posición es requerida</span>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Estatura -->
+          <div class="form-group">
+            <label for="estatura">Estatura (metros) *</label>
+            <input 
+              type="number" 
+              id="estatura" 
+              formControlName="estatura" 
+              class="form-control"
+
+              step="0.01"
+              min="1.50" 
+              max="2.50"
+              [class.error]="jugadorForm.get('estatura')?.invalid && jugadorForm.get('estatura')?.touched">
+            @if (jugadorForm.get('estatura')?.invalid && jugadorForm.get('estatura')?.touched) {
+              <div class="error-message">
+                @if (jugadorForm.get('estatura')?.errors?.['required']) {
+                  <span>La estatura es requerida</span>
+                }
+                @if (jugadorForm.get('estatura')?.errors?.['min'] || jugadorForm.get('estatura')?.errors?.['max']) {
+                  <span>Entre 1.50m y 2.50m</span>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Edad -->
+          <div class="form-group">
+            <label for="edad">Edad *</label>
+            <input 
+              type="number" 
+              id="edad" 
+              formControlName="edad" 
+              class="form-control"
+
+              min="16" 
+              max="50"
+              [class.error]="jugadorForm.get('edad')?.invalid && jugadorForm.get('edad')?.touched">
+            @if (jugadorForm.get('edad')?.invalid && jugadorForm.get('edad')?.touched) {
+              <div class="error-message">
+                @if (jugadorForm.get('edad')?.errors?.['required']) {
+                  <span>La edad es requerida</span>
+                }
+                @if (jugadorForm.get('edad')?.errors?.['min'] || jugadorForm.get('edad')?.errors?.['max']) {
+                  <span>Entre 16 y 50 años</span>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Nacionalidad -->
+          <div class="form-group">
+            <label for="nacionalidad">Nacionalidad *</label>
+            <input 
+              type="text" 
+              id="nacionalidad" 
+              formControlName="nacionalidad" 
+              class="form-control"
+
+              [class.error]="jugadorForm.get('nacionalidad')?.invalid && jugadorForm.get('nacionalidad')?.touched">
+            @if (jugadorForm.get('nacionalidad')?.invalid && jugadorForm.get('nacionalidad')?.touched) {
+              <div class="error-message">
+                @if (jugadorForm.get('nacionalidad')?.errors?.['required']) {
+                  <span>La nacionalidad es requerida</span>
+                }
+                @if (jugadorForm.get('nacionalidad')?.errors?.['minlength']) {
+                  <span>Mínimo 2 caracteres</span>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Equipo -->
+          <div class="form-group">
+            <label for="equipoId">Equipo *</label>
+            <select 
+              id="equipoId" 
+              formControlName="equipoId" 
+              class="form-control"
+              [class.error]="jugadorForm.get('equipoId')?.invalid && jugadorForm.get('equipoId')?.touched">
+              <option value="">Seleccionar equipo</option>
+              @for (equipo of equipos; track equipo.id) {
+                <option [value]="equipo.id">{{equipo.nombre}}</option>
+              }
+            </select>
+            @if (jugadorForm.get('equipoId')?.invalid && jugadorForm.get('equipoId')?.touched) {
+              <div class="error-message">
+                @if (jugadorForm.get('equipoId')?.errors?.['required']) {
+                  <span>El equipo es requerido</span>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Foto URL -->
+          <div class="form-group form-group-full">
+            <label for="foto">URL Foto del Jugador (opcional)</label>
+            <input 
+              type="text" 
+              id="foto" 
+              formControlName="foto" 
+              class="form-control"
+              placeholder="https://ejemplo.com/foto-jugador.jpg">
+            <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">
+              💡 Ingresa la URL de la foto del jugador
+            </small>
+          </div>
+
+          <!-- Estado (solo en edición) -->
+          @if (isEditing) {
+            <div class="form-group form-group-checkbox">
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="isActivo">
+                <span class="checkmark"></span>
+                Jugador Activo
+              </label>
+            </div>
+          }
+        </div>
+
+        @if (error) {
+          <div class="alert alert-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{error}}
+          </div>
+        }
+      </form>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeModal()" [disabled]="isLoading">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary" (click)="onSubmit()" [disabled]="!jugadorForm.valid || isLoading">
+          @if (isLoading) {
+            <span class="loading-spinner-small"></span>
+          }
+          {{isEditing ? 'Actualizar' : 'Crear'}} Jugador
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal de Confirmación de Eliminación -->
+@if (showDeleteModal) {
+  <div class="modal-overlay" (click)="closeDeleteModal()">
+    <div class="modal-container modal-small" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Confirmar Eliminación</h2>
+        <button class="btn-close" (click)="closeDeleteModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="delete-confirmation">
+          <i class="fas fa-exclamation-triangle warning-icon"></i>
+          <p>¿Estás seguro de que quieres eliminar al jugador <strong>{{jugadorToDelete?.nombreCompleto}}</strong>?</p>
+          <p class="warning-text">Esta acción no se puede deshacer.</p>
+        </div>
+
+        @if (error) {
+          <div class="alert alert-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{error}}
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeDeleteModal()" [disabled]="isLoading">
+          Cancelar
+        </button>
+        <button class="btn btn-danger" (click)="jugadorToDelete && confirmDelete(jugadorToDelete)" [disabled]="isLoading">
+          @if (isLoading) {
+            <span class="loading-spinner-small"></span>
+          }
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+}

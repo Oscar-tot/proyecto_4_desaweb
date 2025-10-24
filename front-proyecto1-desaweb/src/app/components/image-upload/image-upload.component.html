@@ -1,0 +1,72 @@
+<div class="image-upload-container">
+  <!-- Preview de imagen actual -->
+  @if (currentImageUrl) {
+    <div class="image-preview">
+      <img [src]="getImageUrl(currentImageUrl)" [alt]="altText" class="preview-image">
+      <button type="button" class="btn-remove-image" (click)="removeImage()" title="Quitar imagen">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  }
+  
+  <!-- Placeholder cuando no hay imagen -->
+  @if (!currentImageUrl) {
+    <div class="image-placeholder">
+      <i class="fas fa-image"></i>
+      <p>{{placeholderText}}</p>
+    </div>
+  }
+  
+  <!-- Controles de upload -->
+  <div class="upload-controls">
+    <input 
+      type="file" 
+      #fileInput 
+      (change)="onFileSelected($event)"
+      accept="image/*"
+      style="display: none">
+    
+    <button 
+      type="button" 
+      class="btn btn-secondary" 
+      (click)="fileInput.click()"
+      [disabled]="isUploading">
+      <i class="fas fa-upload"></i>
+      {{currentImageUrl ? 'Cambiar' : 'Seleccionar'}}
+    </button>
+    
+    @if (selectedFile) {
+      <button 
+        type="button" 
+        class="btn btn-primary btn-upload" 
+        (click)="uploadImage()"
+        [disabled]="!selectedFile || isUploading">
+        @if (isUploading) {
+          <span class="loading-spinner-small"></span>
+        }
+        @if (!isUploading) {
+          <i class="fas fa-cloud-upload-alt"></i>
+        }
+        {{isUploading ? 'Subiendo...' : 'Subir'}}
+      </button>
+    }
+  </div>
+  
+  <!-- Información del archivo seleccionado -->
+  @if (selectedFile) {
+    <div class="file-info">
+      <small>
+        <strong>{{selectedFile.name}}</strong> 
+        ({{formatFileSize(selectedFile.size)}})
+      </small>
+    </div>
+  }
+  
+  <!-- Mensaje de error -->
+  @if (errorMessage) {
+    <div class="upload-error">
+      <i class="fas fa-exclamation-triangle"></i>
+      <span>{{errorMessage}}</span>
+    </div>
+  }
+</div>

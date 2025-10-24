@@ -1,0 +1,686 @@
+<!-- Mostrar panel según el tipo de usuario -->
+@if (hayUsuarioAutenticado()) {
+  @if (mostrarPanelUsuario()) {
+    <!-- Panel para usuarios normales -->
+    <app-panel-usuario></app-panel-usuario>
+  } @else {
+    <!-- Panel de administración completo -->
+    <div class="admin-dashboard">
+  <!-- Sidebar de navegación -->
+  <div class="sidebar">
+    <div class="logo">
+      <h2><i class="material-icons">sports_basketball</i> BasketPro</h2>
+      <p>Panel de Administración</p>
+    </div>
+    
+    <nav class="nav-menu">
+      <button class="nav-item" [class.active]="seccionActiva() === 'dashboard'" (click)="navegarA('dashboard')">
+        <span class="nav-icon"><i class="material-icons">dashboard</i></span>
+        <span class="nav-text">Dashboard</span>
+      </button>
+      
+      <button class="nav-item" [class.active]="seccionActiva() === 'marcador'" (click)="navegarA('marcador')">
+        <span class="nav-icon"><i class="material-icons">sports_basketball</i></span>
+        <span class="nav-text">Marcador</span>
+      </button>
+      
+      <button class="nav-item" [class.active]="seccionActiva() === 'equipos'" (click)="navegarA('equipos')">
+        <span class="nav-icon"><i class="material-icons">groups</i></span>
+        <span class="nav-text">Equipos</span>
+      </button>
+      
+      <button class="nav-item" [class.active]="seccionActiva() === 'jugadores'" (click)="navegarA('jugadores')">
+        <span class="nav-icon"><i class="material-icons">person</i></span>
+        <span class="nav-text">Jugadores</span>
+      </button>
+      
+      <button class="nav-item" [class.active]="seccionActiva() === 'partidos'" (click)="navegarA('partidos')">
+        <span class="nav-icon"><i class="material-icons">emoji_events</i></span>
+        <span class="nav-text">Partidos</span>
+      </button>
+      
+      <button class="nav-item" [class.active]="seccionActiva() === 'usuarios'" (click)="navegarA('usuarios')">
+        <span class="nav-icon"><i class="material-icons">people</i></span>
+        <span class="nav-text">Usuarios</span>
+      </button>
+      
+      <button class="nav-item" [class.active]="seccionActiva() === 'reportes'" (click)="navegarA('reportes')">
+        <span class="nav-icon"><i class="material-icons">analytics</i></span>
+        <span class="nav-text">Reportes</span>
+      </button>
+      
+      <button class="nav-item" [class.active]="seccionActiva() === 'configuracion'" (click)="navegarA('configuracion')">
+        <span class="nav-icon"><i class="material-icons">settings</i></span>
+        <span class="nav-text">Configuración</span>
+      </button>
+    </nav>
+    
+    <div class="user-info">
+      <div class="user-avatar"><i class="material-icons">account_circle</i></div>
+      <div class="user-details">
+        <span class="username">{{ authService.currentUser()?.username || 'Usuario' }}</span>
+        @if (esAdministrador()) {
+          <span class="user-role">Administrador</span>
+        }
+      </div>
+      <button class="btn-logout-sidebar" (click)="logout()">
+        <i class="material-icons">logout</i> <span>Cerrar Sesión</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="main-content">
+    <!-- Header del contenido -->
+    <div class="content-header" 
+         [class.partidos-header]="seccionActiva() === 'partidos'"
+         [class.jugadores-header]="seccionActiva() === 'jugadores'"
+         [class.usuarios-header]="seccionActiva() === 'usuarios'"
+         [class.reportes-header]="seccionActiva() === 'reportes'">
+      <div class="header-top">
+        <h1 class="page-title">
+          @if (seccionActiva() === 'dashboard') {
+            <span><i class="material-icons">dashboard</i> Dashboard Principal</span>
+          }
+          @if (seccionActiva() === 'marcador') {
+            <span><i class="material-icons">sports_basketball</i> Marcedor de Baloncesto</span>
+          }
+          @if (seccionActiva() === 'equipos') {
+            <span><i class="material-icons">groups</i> Equipos</span>
+          }
+          @if (seccionActiva() === 'jugadores') {
+            <span><i class="material-icons">person</i> Gestión de Jugadores</span>
+          }
+          @if (seccionActiva() === 'partidos') {
+            <span><i class="material-icons">emoji_events</i> Gestión de Partidos</span>
+          }
+          @if (seccionActiva() === 'usuarios') {
+            <span><i class="material-icons">people</i> Gestión de Usuarios</span>
+          }
+          @if (seccionActiva() === 'reportes') {
+            <span><i class="material-icons">analytics</i> Reportes y Estadísticas</span>
+          }
+          @if (seccionActiva() === 'configuracion') {
+            <span><i class="material-icons">settings</i> Configuración</span>
+          }
+        </h1>
+      </div>
+      
+      <!-- Cuadro blanco dentro del header verde para partidos -->
+      @if (seccionActiva() === 'partidos') {
+        <div class="partidos-white-container">
+          <app-partidos></app-partidos>
+        </div>
+      }
+      
+      <!-- Cuadro blanco dentro del header para jugadores -->
+      @if (seccionActiva() === 'jugadores') {
+        <div class="jugadores-white-container">
+          <app-jugadores></app-jugadores>
+        </div>
+      }
+      
+      <!-- Nuevo componente de usuarios -->
+      @if (seccionActiva() === 'usuarios') {
+        <app-usuarios></app-usuarios>
+      }
+      
+      <!-- Layout vertical para reportes -->
+      @if (seccionActiva() === 'reportes') {
+        <div class="reportes-vertical-layout">
+          <div class="reportes-title-header">
+            <div class="reportes-icon-wrapper">
+              <i class="material-icons">analytics</i>
+            </div>
+            <div class="reportes-text">
+              <h2>Reportes y Estadísticas</h2>
+              <p>Genera reportes en PDF</p>
+            </div>
+          </div>
+          <div class="reportes-panel-section">
+            <app-reportes></app-reportes>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Dashboard Principal -->
+    <div class="dashboard-content" *ngIf="seccionActiva() === 'dashboard'">
+      <div class="stats-grid">
+        <!-- Widget de equipos -->
+        <div class="stat-card teams-card">
+          <div class="stat-header">
+            <h3><i class="material-icons">groups</i> Equipos</h3>
+            <span class="stat-value">{{ equiposDisponibles().length }}</span>
+          </div>
+          <p class="stat-description">Equipos registrados</p>
+          <button class="card-action-btn" (click)="navegarA('equipos')">Gestionar</button>
+        </div>
+
+        <!-- Widget de partidos -->
+        <div class="stat-card matches-card">
+          <div class="stat-header">
+            <h3><i class="material-icons">emoji_events</i> Partidos</h3>
+            <span class="stat-value">{{ partidoIniciado() ? '1' : '0' }}</span>
+          </div>
+          <p class="stat-description">Partido en curso</p>
+          <button class="card-action-btn" (click)="navegarA('marcador')">Ver Marcador</button>
+        </div>
+
+        <!-- Widget de usuarios -->
+          <div class="stat-card users-card">
+            <div class="stat-header">
+              <h3><i class="material-icons">people</i> Usuarios</h3>
+              <span class="stat-value">{{ totalUsuarios() }}</span>
+            </div>
+            <p class="stat-description">Usuarios activos</p>
+            <button class="card-action-btn" (click)="navegarA('usuarios')">Administrar</button>
+          </div>        <!-- Widget de estado del sistema -->
+        <div class="stat-card system-card">
+          <div class="stat-header">
+            <h3><i class="material-icons">computer</i> Sistema</h3>
+            <span class="stat-indicator online">●</span>
+          </div>
+          <p class="stat-description">Todo funcionando</p>
+          <button class="card-action-btn" (click)="navegarA('configuracion')">Configurar</button>
+        </div>
+      </div>
+
+      <!-- Sección de acciones rápidas -->
+      <div class="quick-actions">
+        <h3><i class="material-icons">flash_on</i> Acciones Rápidas</h3>
+        <div class="actions-grid">
+          <button class="quick-action-btn" (click)="abrirModalCrearEquipo()">
+            <span class="action-icon"><i class="material-icons">add</i></span>
+            <span class="action-text">Crear Equipo</span>
+          </button>
+          <button class="quick-action-btn" (click)="abrirModalCrearJugador()">
+            <span class="action-icon"><i class="material-icons">person</i></span>
+            <span class="action-text">Agregar Jugador</span>
+          </button>
+          <button class="quick-action-btn" (click)="navegarA('reportes')">
+            <span class="action-icon"><i class="material-icons">analytics</i></span>
+            <span class="action-text">Ver Reportes</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección del Marcador de Baloncesto -->
+    <div class="marcador-content" *ngIf="seccionActiva() === 'marcador'">
+      <!-- Mensajes de estado -->
+      @if (mensajeEstado() || guardando()) {
+        <div class="estado-partido">
+          <div class="estado-mensaje" [class.guardando]="guardando()">
+            @if (guardando()) {
+              <span class="loading-spinner"></span>
+            }
+            {{ mensajeEstado() }}
+          </div>
+        </div>
+      }
+      
+      <!-- Marcador principal -->
+      <div class="marcador-principal">
+        <div class="info-partido">
+          <h2>{{ obtenerNombrePeriodo() }}</h2>
+        </div>
+
+        <!-- Equipos y puntuaciones -->
+        <div class="equipos-marcador">
+          <!-- Equipo Local -->
+          <div class="equipo local">
+            <h3>{{ equipoLocal() }}</h3>
+            <div class="puntuacion-container">
+              <div class="puntuacion">{{ puntuacionLocal() }}</div>
+              <div class="controles-puntuacion">
+                <button class="btn-punto" (click)="sumarPuntos('local', 1)">+1</button>
+                <button class="btn-punto" (click)="sumarPuntos('local', 2)">+2</button>
+                <button class="btn-punto" (click)="sumarPuntos('local', 3)">+3</button>
+                <button class="btn-punto restar" (click)="restarPuntos('local', 1)">-1</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información central -->
+          <div class="info-central">
+            <div class="tiempo-juego">
+              <div class="tiempo-display">{{ formatearTiempo(tiempo()) }}</div>
+              <div class="controles-tiempo">
+                @if (!estaCorriendo()) {
+                  <button class="btn-control" (click)="iniciarTiempo()">▶</button>
+                }
+                @if (estaCorriendo()) {
+                  <button class="btn-control" (click)="pausarTiempo()">⏸</button>
+                }
+                <button class="btn-control" (click)="reiniciarTiempo()">⏹</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Equipo Visitante -->
+          <div class="equipo visitante">
+            <h3>{{ equipoVisitante() }}</h3>
+            <div class="puntuacion-container">
+              <div class="puntuacion">{{ puntuacionVisitante() }}</div>
+              <div class="controles-puntuacion">
+                <button class="btn-punto" (click)="sumarPuntos('visitante', 1)">+1</button>
+                <button class="btn-punto" (click)="sumarPuntos('visitante', 2)">+2</button>
+                <button class="btn-punto" (click)="sumarPuntos('visitante', 3)">+3</button>
+                <button class="btn-punto restar" (click)="restarPuntos('visitante', 1)">-1</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controles del partido -->
+        <div class="controles-partido">
+          <div class="controles-periodo">
+            <button class="btn-periodo" (click)="siguientePeriodo()" [disabled]="estaCorriendo()">
+              Siguiente Período
+            </button>
+            <button class="btn-periodo" (click)="anteriorPeriodo()" [disabled]="periodo() === 1 || estaCorriendo()">
+              Período Anterior
+            </button>
+          </div>
+
+          @if (estadoPartido() !== 'FINALIZADO') {
+            <button class="btn-terminar-partido" (click)="terminarPartido()">
+              <i class="fas fa-flag-checkered"></i> Terminar Partido
+            </button>
+          }
+          @if (estadoPartido() === 'FINALIZADO') {
+            <div class="partido-finalizado">
+              <i class="fas fa-flag-checkered"></i>
+              Partido Finalizado
+            </div>
+          }
+        </div>
+
+        <!-- Estadísticas adicionales -->
+        <div class="estadisticas-adicionales">
+          <!-- Equipo Local Stats -->
+          <div class="equipo-stats local-stats">
+            <h4>EQUIPO LOCAL</h4>
+            <div class="stats-row">
+              <div class="stat-item">
+                <span class="stat-label">Faltas:</span>
+                <span class="stat-value">{{ faltasLocal() }}/{{ maximasFaltas }}</span>
+                <div class="stat-controls">
+                  <button class="btn-estadistica" (click)="sumarFalta('local')" [disabled]="faltasLocal() >= maximasFaltas">
+                    <i class="material-icons">add</i>
+                    <span>Falta</span>
+                  </button>
+                  <button class="btn-estadistica" (click)="restarFalta('local')" [disabled]="faltasLocal() === 0">
+                    <i class="material-icons">remove</i>
+                    <span>Falta</span>
+                  </button>
+                </div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Tiempos Muertos:</span>
+                <span class="stat-value">{{ tiemposMuertosLocal() }}</span>
+                <button class="btn-estadistica" (click)="usarTiempoMuerto('local')" [disabled]="tiemposMuertosLocal() === 0">
+                  <i class="material-icons">timer</i>
+                  <span>Tiempo Muerto</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Equipo Visitante Stats -->
+          <div class="equipo-stats visitante-stats">
+            <h4>EQUIPO VISITANTE</h4>
+            <div class="stats-row">
+              <div class="stat-item">
+                <span class="stat-label">Faltas:</span>
+                <span class="stat-value">{{ faltasVisitante() }}/{{ maximasFaltas }}</span>
+                <div class="stat-controls">
+                  <button class="btn-estadistica" (click)="sumarFalta('visitante')" [disabled]="faltasVisitante() >= maximasFaltas">
+                    <i class="material-icons">add</i>
+                    <span>Falta</span>
+                  </button>
+                  <button class="btn-estadistica" (click)="restarFalta('visitante')" [disabled]="faltasVisitante() === 0">
+                    <i class="material-icons">remove</i>
+                    <span>Falta</span>
+                  </button>
+                </div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Tiempos Muertos:</span>
+                <span class="stat-value">{{ tiemposMuertosVisitante() }}</span>
+                <button class="btn-estadistica" (click)="usarTiempoMuerto('visitante')" [disabled]="tiemposMuertosVisitante() === 0">
+                  <i class="material-icons">timer</i>
+                  <span>Tiempo Muerto</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Equipos -->
+    <div class="section-content" *ngIf="seccionActiva() === 'equipos'">
+      <div class="teams-management">
+        <div class="section-header">
+          <h3><i class="material-icons">groups</i> Equipos</h3>
+          <button class="btn-primary" (click)="abrirModalCrearEquipo()">
+            <span><i class="material-icons">add</i> CREAR NUEVO EQUIPO</span>
+          </button>
+        </div>
+
+        <!-- Barra de búsqueda -->
+        <div class="search-bar">
+          <div class="search-input-group">
+            <span class="search-icon"><i class="material-icons">search</i></span>
+            <input 
+              type="text" 
+              placeholder="Buscar equipos por nombre o ciudad..." 
+              [value]="busquedaEquipo()"
+              (input)="busquedaEquipo.set($any($event.target).value); buscarEquipos()"
+              class="search-input"
+            >
+          </div>
+          <div class="search-results-info">
+            <span>{{ equiposFiltrados().length }} equipo(s) encontrado(s)</span>
+          </div>
+        </div>
+
+        <!-- Loading indicator -->
+        @if (cargandoEquipos()) {
+          <div class="loading-indicator">
+            <span>🔄 Cargando equipos...</span>
+          </div>
+        }
+
+        <!-- Lista de equipos -->
+        @if (!cargandoEquipos()) {
+          <div class="teams-grid">
+            @if (equiposFiltrados().length === 0) {
+              <div class="no-teams-message">
+                <h4>📝 No hay equipos registrados</h4>
+                <p>Comienza creando tu primer equipo haciendo clic en "Crear Nuevo Equipo"</p>
+              </div>
+            }
+
+            @for (equipo of equiposFiltrados(); track equipo.id) {
+              <div class="team-card">
+                <div class="team-header">
+                  <div class="team-info">
+                    <h4 class="team-name">{{ equipo.nombre }}</h4>
+                    <p class="team-city">📍 {{ equipo.ciudad }}</p>
+                    <small class="team-date">Creado: {{ equipo.fechaCreacion | date:'dd/MM/yyyy' }}</small>
+                  </div>
+                  @if (equipo.logo) {
+                    <div class="team-logo">
+                      <img [src]="equipo.logo" [alt]="equipo.nombre + ' logo'" onerror="this.style.display='none'">
+                    </div>
+                  }
+                </div>
+                
+                <div class="team-actions">
+                  <button class="btn-edit" (click)="abrirModalEditarEquipo(equipo)" title="Editar equipo">
+                    <i class="material-icons">edit</i> Editar
+                  </button>
+                  <button class="btn-delete" (click)="confirmarEliminarEquipo(equipo)" title="Eliminar equipo">
+                    <i class="material-icons">delete</i> Eliminar
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+        </div>
+      </div>
+    </div>
+
+    <!-- Los jugadores ahora se muestran dentro del header -->
+
+    <!-- Los partidos ahora se muestran dentro del header verde -->
+
+    <!-- Los usuarios ahora se muestran dentro del header -->
+
+    <!-- Los reportes ahora se muestran dentro del header verde -->
+
+    @if (seccionActiva() === 'configuracion') {
+      <div class="section-content">
+        <div class="section-placeholder">
+          <h3><i class="material-icons">settings</i> Configuración del Sistema</h3>
+          <p>Esta sección permitirá configurar diversos aspectos del sistema.</p>
+          <button class="btn-primary" (click)="configurarReglas()">Configurar Reglas</button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- MODALES (mantienen la misma estructura) -->
+  <!-- Modal Crear Equipo -->
+  @if (mostrarModalCrearEquipo()) {
+    <div class="modal-overlay" (click)="cerrarModalCrearEquipo()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="material-icons">groups</i> Crear Nuevo Equipo</h3>
+        <button class="btn-close" (click)="cerrarModalCrearEquipo()" title="Cerrar">
+          <i class="material-icons">close</i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Nombre del Equipo: *</label>
+          <input 
+            type="text" 
+            [value]="nuevoEquipo().nombre" 
+            (input)="actualizarNuevoEquipo('nombre', $any($event.target).value)" 
+            [class]="'form-input ' + getValidationClass('nombre', equipoValidations())"
+            placeholder="Ej: Lakers, Warriors, Bulls">
+          <div class="validation-message" [class]="getValidationClass('nombre', equipoValidations())">
+            {{ getValidationMessage('nombre', equipoValidations()) }}
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Ciudad: *</label>
+          <input 
+            type="text" 
+            [value]="nuevoEquipo().ciudad" 
+            (input)="actualizarNuevoEquipo('ciudad', $any($event.target).value)" 
+            [class]="'form-input ' + getValidationClass('ciudad', equipoValidations())"
+            placeholder="Ej: Los Angeles, San Francisco">
+          <div class="validation-message" [class]="getValidationClass('ciudad', equipoValidations())">
+            {{ getValidationMessage('ciudad', equipoValidations()) }}
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Logo del Equipo (opcional):</label>
+          <input 
+            type="text" 
+            [value]="nuevoEquipo().logo || ''" 
+            (input)="actualizarNuevoEquipo('logo', $any($event.target).value)" 
+            class="form-input"
+            placeholder="https://ejemplo.com/logo.png">
+          <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">
+            💡 Ingresa la URL del logo del equipo (ej: logos oficiales de NBA)
+          </small>
+        </div>
+        <div class="form-group">
+          <label>Descripción (opcional):</label>
+          <textarea 
+            [value]="nuevoEquipo().descripcion || ''" 
+            (input)="actualizarNuevoEquipo('descripcion', $any($event.target).value)" 
+            placeholder="Descripción del equipo..." 
+            class="form-textarea"
+            rows="3"
+          ></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="cerrarModalCrearEquipo()">Cancelar</button>
+        <button 
+          class="btn-confirm" 
+          (click)="crearEquipo()"
+          [disabled]="!isFormValid('equipo')"
+          [class.disabled]="!isFormValid('equipo')">
+          Crear Equipo
+        </button>
+      </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Editar Equipo -->
+  <div class="modal-overlay" *ngIf="mostrarModalEditarEquipo()" (click)="cerrarModalEditarEquipo()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3><i class="material-icons">edit</i> Editar Equipo</h3>
+          <button class="btn-close" (click)="cerrarModalEditarEquipo()" title="Cerrar">
+            <i class="material-icons">close</i>
+          </button>
+        </div>
+        @if (equipoEditando()) {
+          <div class="modal-body">
+        <div class="form-group">
+          <label>Nombre del Equipo:</label>
+          <input 
+            type="text" 
+            [value]="equipoEditando()?.nombre || ''" 
+            (input)="actualizarEquipoEditando('nombre', $any($event.target).value)" 
+ 
+            class="form-input"
+          >
+        </div>
+        <div class="form-group">
+          <label>Ciudad:</label>
+          <input 
+            type="text" 
+            [value]="equipoEditando()?.ciudad || ''" 
+            (input)="actualizarEquipoEditando('ciudad', $any($event.target).value)" 
+ 
+            class="form-input"
+          >
+        </div>
+        <div class="form-group">
+          <label>Logo del Equipo (opcional):</label>
+          <input 
+            type="text" 
+            [value]="equipoEditando()?.logo || ''" 
+            (input)="actualizarEquipoEditando('logo', $any($event.target).value)" 
+            class="form-input"
+            placeholder="https://ejemplo.com/logo.png">
+          <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">
+            💡 Ingresa la URL del logo del equipo (ej: logos oficiales de NBA)
+          </small>
+        </div>
+        <div class="form-group">
+          <label>Descripción (opcional):</label>
+          <textarea 
+            [value]="equipoEditando()?.descripcion || ''" 
+            (input)="actualizarEquipoEditando('descripcion', $any($event.target).value)" 
+            placeholder="Descripción del equipo..." 
+            class="form-textarea"
+            rows="3"
+          ></textarea>
+        </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" (click)="cerrarModalEditarEquipo()">Cancelar</button>
+          <button class="btn-confirm" (click)="guardarCambiosEquipo()">Guardar Cambios</button>
+        </div>
+        }
+      </div>
+    </div>
+
+  <!-- Modal Crear Jugador -->
+  @if (mostrarModalCrearJugador()) {
+    <div class="modal-overlay" (click)="cerrarModalCrearJugador()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="material-icons">person_add</i> Agregar Nuevo Jugador</h3>
+        <button class="btn-close" (click)="cerrarModalCrearJugador()" title="Cerrar">
+          <i class="material-icons">close</i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Nombre del Jugador: *</label>
+          <input 
+            type="text" 
+            [value]="nuevoJugador().nombre" 
+            (input)="actualizarNuevoJugador('nombre', $any($event.target).value)" 
+            [class]="'form-input ' + getValidationClass('nombre', jugadorValidations())"
+            placeholder="Ej: LeBron James, Stephen Curry">
+          <div class="validation-message" [class]="getValidationClass('nombre', jugadorValidations())">
+            {{ getValidationMessage('nombre', jugadorValidations()) }}
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Número de Camiseta: *</label>
+          <input 
+            type="number" 
+            [value]="nuevoJugador().numero" 
+            (input)="actualizarNuevoJugador('numero', +$any($event.target).value)" 
+            min="0" max="99" 
+            [class]="'form-input ' + getValidationClass('numero', jugadorValidations())"
+            placeholder="0-99">
+          <div class="validation-message" [class]="getValidationClass('numero', jugadorValidations())">
+            {{ getValidationMessage('numero', jugadorValidations()) }}
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Posición: *</label>
+          <select 
+            [value]="nuevoJugador().posicion" 
+            (change)="actualizarNuevoJugador('posicion', $any($event.target).value)" 
+            [class]="'form-input ' + getValidationClass('posicion', jugadorValidations())">
+            <option value="">Seleccionar posición</option>
+            <option value="Base">Base (PG)</option>
+            <option value="Escolta">Escolta (SG)</option>
+            <option value="Alero">Alero (SF)</option>
+            <option value="Ala-Pivot">Ala-Pivot (PF)</option>
+            <option value="Pivot">Pívot (C)</option>
+          </select>
+          <div class="validation-message" [class]="getValidationClass('posicion', jugadorValidations())">
+            {{ getValidationMessage('posicion', jugadorValidations()) }}
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Equipo: *</label>
+          <select 
+            [value]="nuevoJugador().equipoId" 
+            (change)="actualizarNuevoJugador('equipoId', +$any($event.target).value)" 
+            [class]="'form-input ' + getValidationClass('equipoId', jugadorValidations())">
+            <option value="">Seleccionar equipo</option>
+            @for (equipo of equiposDisponibles(); track equipo.id) {
+              <option [value]="equipo.id">
+                {{ equipo.nombre }} ({{ equipo.ciudad }})
+              </option>
+            }
+          </select>
+          <div class="validation-message" [class]="getValidationClass('equipoId', jugadorValidations())">
+            {{ getValidationMessage('equipoId', jugadorValidations()) }}
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="cerrarModalCrearJugador()">Cancelar</button>
+        <button 
+          class="btn-confirm" 
+          (click)="crearJugador()"
+          [disabled]="!isFormValid('jugador')"
+          [class.disabled]="!isFormValid('jugador')">
+          Agregar Jugador
+        </button>
+      </div>
+    </div>
+  </div>
+  }
+  </div>
+  <!-- Fin del panel de administración -->
+  }
+} @else {
+  <!-- Componente de login cuando no hay usuario autenticado -->
+  <app-login></app-login>
+}
+
+
+

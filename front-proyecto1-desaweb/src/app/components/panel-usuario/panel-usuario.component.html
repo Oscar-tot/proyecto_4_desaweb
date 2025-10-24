@@ -1,0 +1,185 @@
+<div class="panel-usuario">
+  <!-- Header del Panel de Usuario -->
+  <header class="header-usuario">
+    <div class="header-content">
+      <div class="logo-section">
+        <h1>ScoreBoard - Panel Usuario</h1>
+        <p class="welcome-text">Bienvenido, {{ authService.currentUser()?.username }}</p>
+      </div>
+      <div class="user-info">
+        <span class="user-badge">{{ authService.currentUser()?.role }}</span>
+        <button class="btn-logout" (click)="logout()">
+          Cerrar Sesión
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navegación del Usuario -->
+  <nav class="nav-usuario">
+    <button 
+      class="nav-item" 
+      [class.active]="seccionActiva() === 'marcador'"
+      (click)="cambiarSeccion('marcador')">
+      <span>Marcador</span>
+    </button>
+    <button 
+      class="nav-item" 
+      [class.active]="seccionActiva() === 'partidos'"
+      (click)="cambiarSeccion('partidos')">
+      <span>Partidos</span>
+    </button>
+  </nav>
+
+  <!-- Contenido Principal -->
+  <main class="main-content">
+    
+    <!-- Sección Marcador -->
+    @if (seccionActiva() === 'marcador') {
+      <div class="seccion-marcador">
+        <div class="titulo-seccion">
+          <h2>Marcador en Vivo</h2>
+          <button class="btn-refresh" (click)="cargarPartidoActual()">
+            Actualizar
+          </button>
+        </div>
+
+        @if (cargandoDatos()) {
+          <div class="loading-card">
+            <div class="spinner"></div>
+            <p>Cargando información del partido...</p>
+          </div>
+        } @else if (partidoActual()) {
+          <!-- Marcador Principal -->
+          <div class="marcador-principal">
+            <div class="equipo-card equipo-local">
+              <div class="equipo-info">
+                <h3>{{ partidoActual()?.equipoLocalNombre }}</h3>
+                <div class="puntos-grandes">{{ (partidoActual()?.marcador || '0-0').split('-')[0] || '0' }}</div>
+              </div>
+            </div>
+
+            <div class="separador-marcador">
+              <div class="estado-partido" [class]="obtenerClaseEstado(partidoActual()?.estado || '')">
+                {{ obtenerEstadoPartido(partidoActual()?.estado || '') }}
+              </div>
+              <div class="vs">VS</div>
+              <div class="fecha-partido">
+                {{ formatearFecha(partidoActual()?.fechaPartido || '') }}
+              </div>
+            </div>
+
+            <div class="equipo-card equipo-visitante">
+              <div class="equipo-info">
+                <h3>{{ partidoActual()?.equipoVisitanteNombre }}</h3>
+                <div class="puntos-grandes">{{ (partidoActual()?.marcador || '0-0').split('-')[1] || '0' }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información Adicional del Partido -->
+          <div class="info-adicional">
+            <div class="info-card">
+              <div>
+                <h4>Fecha</h4>
+                <p>{{ formatearFecha(partidoActual()?.fechaPartido || '') }}</p>
+              </div>
+            </div>
+            <div class="info-card">
+              <div>
+                <h4>Estado</h4>
+                <p>{{ obtenerEstadoPartido(partidoActual()?.estado || '') }}</p>
+              </div>
+            </div>
+            @if (partidoActual()?.fechaFinalizacion) {
+              <div class="info-card">
+                <div>
+                  <h4>Finalizado</h4>
+                  <p>{{ formatearFecha(partidoActual()?.fechaFinalizacion || '') }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="no-data-card">
+            <h3>No hay partidos disponibles</h3>
+            <p>En este momento no hay partidos programados o en curso.</p>
+            <button class="btn-refresh" (click)="cargarPartidoActual()">
+              Verificar de nuevo
+            </button>
+          </div>
+        }
+      </div>
+    }
+
+
+
+
+
+    <!-- Sección Partidos -->
+    @if (seccionActiva() === 'partidos') {
+      <div class="seccion-partidos">
+        <div class="titulo-seccion">
+          <h2>Partidos</h2>
+          <button class="btn-refresh" (click)="cargarPartidos()">
+            <i class="fas fa-sync-alt"></i> Actualizar
+          </button>
+        </div>
+
+        @if (cargandoDatos()) {
+          <div class="loading-card">
+            <div class="spinner"></div>
+            <p>Cargando partidos...</p>
+          </div>
+        } @else if (partidos().length > 0) {
+          <div class="partidos-grid">
+            @for (partido of partidos(); track partido.id) {
+              <div class="partido-card">
+                <div class="partido-header">
+                  <div class="estado-partido" [class]="obtenerClaseEstado(partido.estado)">
+                    {{ obtenerEstadoPartido(partido.estado) }}
+                  </div>
+                  <div class="fecha-partido">
+                    {{ formatearFecha(partido.fechaPartido) }}
+                  </div>
+                </div>
+                
+                <div class="partido-equipos">
+                  <div class="equipo-partido equipo-local">
+                    <h4>{{ partido.equipoLocalNombre }}</h4>
+                    <div class="puntos-partido">{{ (partido.marcador || '0-0').split('-')[0] || '0' }}</div>
+                  </div>
+                  
+                  <div class="vs-partido">VS</div>
+                  
+                  <div class="equipo-partido equipo-visitante">
+                    <h4>{{ partido.equipoVisitanteNombre }}</h4>
+                    <div class="puntos-partido">{{ (partido.marcador || '0-0').split('-')[1] || '0' }}</div>
+                  </div>
+                </div>
+                
+                @if (partido.fechaFinalizacion) {
+                  <div class="partido-footer">
+                    <span class="finalizacion-info">
+                      <i class="fas fa-flag-checkered"></i>
+                      Finalizado: {{ formatearFecha(partido.fechaFinalizacion) }}
+                    </span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="no-data-card">
+            <i class="fas fa-calendar-times"></i>
+            <h3>No hay partidos registrados</h3>
+            <p>Aún no se han programado partidos en el sistema.</p>
+            <button class="btn-refresh" (click)="cargarPartidos()">
+              <i class="fas fa-sync-alt"></i> Verificar de nuevo
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </main>
+</div>

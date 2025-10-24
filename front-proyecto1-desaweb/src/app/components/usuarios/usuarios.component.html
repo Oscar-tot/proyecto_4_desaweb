@@ -1,0 +1,656 @@
+<div class="usuarios-container">
+  <!-- Header con estadísticas -->
+  <div class="usuarios-header">
+    <div class="usuarios-stats">
+      <div class="stat-card">
+        <div class="stat-icon"><i class="material-icons">people</i></div>
+        <div class="stat-info">
+          <span class="stat-number">{{ totalUsuarios }}</span>
+          <span class="stat-label">Total Usuarios</span>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon"><i class="material-icons">people</i></div>
+        <div class="stat-info">
+          <span class="stat-number">{{ usuariosAdmin }}</span>
+          <span class="stat-label">Administradores</span>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon"><i class="material-icons">people</i></div>
+        <div class="stat-info">
+          <span class="stat-number">{{ usuariosActivos }}</span>
+          <span class="stat-label">Activos</span>
+        </div>
+      </div>
+    </div>
+
+    <button 
+      class="btn-crear-usuario" 
+      (click)="abrirModal()"
+      [disabled]="!puedeCrearUsuarios()"
+      [title]="puedeCrearUsuarios() ? 'Crear nuevo usuario' : 'Solo los administradores pueden crear usuarios'">
+      <i class="fas fa-user-plus"></i>
+      Nuevo Usuario
+      @if (!puedeCrearUsuarios()) {
+        <span class="disabled-hint">(Solo admins)</span>
+      }
+    </button>
+  </div>
+
+  <!-- Controles de búsqueda y filtros -->
+  <div class="usuarios-controls">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input 
+        type="text" 
+        placeholder="Buscar por username o email..."
+        [value]="busqueda()"
+        (input)="busqueda.set($any($event.target).value)">
+    </div>
+
+    <select 
+      class="filter-select"
+      [value]="filtroRol()"
+      (change)="filtroRol.set($any($event.target).value)">
+      <option value="">Todos los roles</option>
+      <option value="Admin">Administradores</option>
+      <option value="Usuario">Usuarios</option>
+    </select>
+  </div>
+
+  <!-- Mensajes -->
+  @if (mensajeError()) {
+    <div class="mensaje error">
+      <i class="fas fa-exclamation-triangle"></i>
+      {{ mensajeError() }}
+    </div>
+  }
+
+  @if (mensajeExito()) {
+    <div class="mensaje exito">
+      <i class="fas fa-check-circle"></i>
+      {{ mensajeExito() }}
+    </div>
+  }
+
+  <!-- Lista de usuarios -->
+  <div class="usuarios-lista">
+    @if (cargandoUsuarios()) {
+      <div class="loading">
+        <i class="fas fa-spinner fa-spin"></i>
+        Cargando usuarios...
+      </div>
+    } @else {
+      <div class="usuarios-table">
+        <div class="table-header">
+          <div class="col-usuario">Usuario</div>
+          <div class="col-email">Email</div>
+          <div class="col-rol">Rol</div>
+          <div class="col-estado">Estado</div>
+          <div class="col-fecha">Creado</div>
+          <div class="col-acciones">Acciones</div>
+        </div>
+
+        @for (usuario of usuariosFiltrados; track usuario.id) {
+          <div class="table-row">
+            <div class="col-usuario">
+              <div class="usuario-avatar">
+                {{ usuario.username.charAt(0).toUpperCase() }}
+              </div>
+              <div class="usuario-info">
+                <span class="usuario-nombre">{{ usuario.username }}</span>
+                <span class="usuario-id">#{{ usuario.id }}</span>
+              </div>
+            </div>
+            
+            <div class="col-email">{{ usuario.email }}</div>
+            
+            <div class="col-rol">
+              <span class="badge" [class.admin]="usuario.roles && usuario.roles.includes('admin')">
+                {{ usuario.roles && usuario.roles.length > 0 ? usuario.roles.join(', ') : 'Sin rol' }}
+              </span>
+            </div>
+            
+            <div class="col-estado">
+              <span class="estado" [class.activo]="usuario.status === 'activo'" [class.inactivo]="usuario.status !== 'activo'">
+                {{ usuario.status === 'activo' ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            
+            <div class="col-fecha">{{ formatearFecha(usuario.createdAt) }}</div>
+            
+            <div class="col-acciones">
+              <button 
+                class="btn-accion btn-ver" 
+                (click)="verDetallesUsuario(usuario)"
+                title="Ver detalles del usuario">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button 
+                class="btn-accion btn-password" 
+                (click)="abrirModalCambiarPassword(usuario)"
+                [disabled]="!puedeCrearUsuarios()"
+                title="Cambiar contraseña">
+                <i class="fas fa-key"></i>
+              </button>
+              <button 
+                class="btn-accion btn-editar" 
+                (click)="abrirModalEditar(usuario)"
+                [disabled]="!puedeCrearUsuarios()"
+                title="Editar usuario">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button 
+                class="btn-accion btn-eliminar" 
+                (click)="confirmarEliminar(usuario)"
+                [disabled]="!puedeCrearUsuarios() || usuario.id === authService.currentUser()?.id"
+                [title]="usuario.id === authService.currentUser()?.id ? 'No puedes eliminarte a ti mismo' : 'Eliminar usuario'">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-state">
+            <i class="fas fa-users"></i>
+            <p>No se encontraron usuarios</p>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Modal para crear usuario -->
+@if (mostrarModal()) {
+  <div class="modal-overlay" (click)="cerrarModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-user-plus"></i> Crear Nuevo Usuario</h3>
+        <button class="btn-close" (click)="cerrarModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Información del usuario actual -->
+        <div class="info-panel">
+          <i class="fas fa-info-circle"></i>
+          <span>Usuario actual: <strong>{{ authService.currentUser()?.username }}</strong> | Rol: <strong>{{ authService.currentUser()?.role }}</strong></span>
+        </div>
+
+        <!-- Mensajes dentro del modal -->
+        @if (mensajeError()) {
+          <div class="mensaje error">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{ mensajeError() }}
+          </div>
+        }
+
+        @if (mensajeExito()) {
+          <div class="mensaje exito">
+            <i class="fas fa-check-circle"></i>
+            {{ mensajeExito() }}
+          </div>
+        }
+
+        <!-- Formulario -->
+        <form class="usuario-form" (ngSubmit)="crearUsuario()">
+          <div class="form-group">
+            <label for="username">
+              <i class="fas fa-user"></i>
+              Username *
+            </label>
+            <input 
+              id="username"
+              type="text" 
+              [value]="nuevoUsuario().username"
+              (input)="actualizarCampo('username', $any($event.target).value)"
+              [class]="'form-control ' + getValidationClass('username', usuarioValidations())"
+              placeholder="Ingresa el username"
+              required>
+            <div class="validation-message" [class]="getValidationClass('username', usuarioValidations())">
+              {{ getValidationMessage('username', usuarioValidations()) }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="email">
+              <i class="fas fa-envelope"></i>
+              Email *
+            </label>
+            <input 
+              id="email"
+              type="email" 
+              [value]="nuevoUsuario().email"
+              (input)="actualizarCampo('email', $any($event.target).value)"
+              [class]="'form-control ' + getValidationClass('email', usuarioValidations())"
+              placeholder="ejemplo@email.com"
+              required>
+            <div class="validation-message" [class]="getValidationClass('email', usuarioValidations())">
+              {{ getValidationMessage('email', usuarioValidations()) }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="password">
+              <i class="fas fa-lock"></i>
+              Contraseña *
+            </label>
+            <input 
+              id="password"
+              type="password" 
+              [value]="nuevoUsuario().password"
+              (input)="actualizarCampo('password', $any($event.target).value)"
+              [class]="'form-control ' + getValidationClass('password', usuarioValidations())"
+              placeholder="Mínimo 6 caracteres"
+              required>
+            <div class="validation-message" [class]="getValidationClass('password', usuarioValidations())">
+              {{ getValidationMessage('password', usuarioValidations()) }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="firstName">
+              <i class="fas fa-user"></i>
+              Nombre *
+            </label>
+            <input 
+              id="firstName"
+              type="text" 
+              [value]="nuevoUsuario().firstName"
+              (input)="actualizarCampo('firstName', $any($event.target).value)"
+              placeholder="Nombre"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="lastName">
+              <i class="fas fa-user"></i>
+              Apellido *
+            </label>
+            <input 
+              id="lastName"
+              type="text" 
+              [value]="nuevoUsuario().lastName"
+              (input)="actualizarCampo('lastName', $any($event.target).value)"
+              placeholder="Apellido"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="roles">
+              <i class="fas fa-crown"></i>
+              Rol *
+            </label>
+            <select 
+              id="roles"
+              (change)="actualizarRoles($any($event.target).value)">
+              <option value="user">Usuario</option>
+              <option value="admin">Administrador</option>
+              <option value="moderator">Moderador</option>
+              <option value="scorer">Anotador</option>
+            </select>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="cerrarModal()">
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          (click)="crearUsuario()"
+          [disabled]="creandoUsuario() || !isFormValid()"
+          [class.disabled]="!isFormValid()"
+          [title]="isFormValid() ? 'Crear nuevo usuario' : 'Complete todos los campos requeridos'">
+          @if (creandoUsuario()) {
+            <i class="fas fa-spinner fa-spin"></i>
+            Creando...
+          } @else {
+            <i class="fas fa-plus"></i>
+            Crear Usuario
+            @if (!isFormValid()) {
+              <span class="validation-hint">(Complete el formulario)</span>
+            }
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+<!-- Modal para editar usuario -->
+@if (mostrarModalEditar()) {
+  <div class="modal-overlay" (click)="cerrarModalEditar()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-edit"></i> Editar Usuario</h3>
+        <button class="btn-close" (click)="cerrarModalEditar()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form class="usuario-form">
+          <div class="form-group">
+            <label for="edit-username">
+              <i class="fas fa-user"></i>
+              Username *
+            </label>
+            <input 
+              id="edit-username"
+              type="text" 
+              [value]="usuarioEditando().username"
+              (input)="actualizarCampoEditar('username', $any($event.target).value)"
+              placeholder="Username"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-email">
+              <i class="fas fa-envelope"></i>
+              Email *
+            </label>
+            <input 
+              id="edit-email"
+              type="email" 
+              [value]="usuarioEditando().email"
+              (input)="actualizarCampoEditar('email', $any($event.target).value)"
+              placeholder="correo@ejemplo.com"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-firstName">
+              <i class="fas fa-user"></i>
+              Nombre *
+            </label>
+            <input 
+              id="edit-firstName"
+              type="text" 
+              [value]="usuarioEditando().firstName"
+              (input)="actualizarCampoEditar('firstName', $any($event.target).value)"
+              placeholder="Nombre"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-lastName">
+              <i class="fas fa-user"></i>
+              Apellido *
+            </label>
+            <input 
+              id="edit-lastName"
+              type="text" 
+              [value]="usuarioEditando().lastName"
+              (input)="actualizarCampoEditar('lastName', $any($event.target).value)"
+              placeholder="Apellido"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-roles">
+              <i class="fas fa-crown"></i>
+              Rol *
+            </label>
+            <select 
+              id="edit-roles"
+              [value]="usuarioEditando().roles && usuarioEditando().roles.length > 0 ? usuarioEditando().roles[0] : 'user'"
+              (change)="actualizarRolesEditar($any($event.target).value)">
+              <option value="user">Usuario</option>
+              <option value="admin">Administrador</option>
+              <option value="moderator">Moderador</option>
+              <option value="scorer">Anotador</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-status">
+              <i class="fas fa-toggle-on"></i>
+              Estado *
+            </label>
+            <select 
+              id="edit-status"
+              [value]="usuarioEditando().status"
+              (change)="actualizarCampoEditar('status', $any($event.target).value)">
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </select>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="cerrarModalEditar()">
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          (click)="actualizarUsuario()"
+          [disabled]="editandoUsuario()">
+          @if (editandoUsuario()) {
+            <i class="fas fa-spinner fa-spin"></i>
+            Actualizando...
+          } @else {
+            <i class="fas fa-save"></i>
+            Guardar Cambios
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal de confirmación de eliminación -->
+@if (mostrarModalEliminar()) {
+  <div class="modal-overlay" (click)="cerrarModalEliminar()">
+    <div class="modal-content modal-small" (click)="$event.stopPropagation()">
+      <div class="modal-header modal-header-danger">
+        <h3><i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación</h3>
+        <button class="btn-close" (click)="cerrarModalEliminar()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="confirm-message">
+          ¿Estás seguro de que deseas eliminar al usuario 
+          <strong>{{ usuarioAEliminar()?.username }}</strong>?
+        </p>
+        <p class="confirm-warning">
+          <i class="fas fa-exclamation-circle"></i>
+          Esta acción no se puede deshacer.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="cerrarModalEliminar()">
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn-danger" 
+          (click)="usuarioAEliminar() && eliminarUsuario(usuarioAEliminar()!)"
+          [disabled]="eliminandoUsuario()">
+          @if (eliminandoUsuario()) {
+            <i class="fas fa-spinner fa-spin"></i>
+            Eliminando...
+          } @else {
+            <i class="fas fa-trash"></i>
+            Eliminar
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal de detalles del usuario -->
+@if (mostrarModalDetalles()) {
+  <div class="modal-overlay" (click)="cerrarModalDetalles()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-user-circle"></i> Detalles del Usuario</h3>
+        <button class="btn-close" (click)="cerrarModalDetalles()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        @if (cargandoDetalles()) {
+          <div class="loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            Cargando detalles...
+          </div>
+        } @else if (usuarioDetalle()) {
+          <div class="detalles-usuario">
+            <div class="detalle-item">
+              <label><i class="fas fa-hashtag"></i> ID:</label>
+              <span>{{ usuarioDetalle()!.id }}</span>
+            </div>
+            <div class="detalle-item">
+              <label><i class="fas fa-user"></i> Username:</label>
+              <span>{{ usuarioDetalle()!.username }}</span>
+            </div>
+            <div class="detalle-item">
+              <label><i class="fas fa-envelope"></i> Email:</label>
+              <span>{{ usuarioDetalle()!.email }}</span>
+            </div>
+            <div class="detalle-item">
+              <label><i class="fas fa-user"></i> Nombre:</label>
+              <span>{{ usuarioDetalle()!.firstName }}</span>
+            </div>
+            <div class="detalle-item">
+              <label><i class="fas fa-user"></i> Apellido:</label>
+              <span>{{ usuarioDetalle()!.lastName }}</span>
+            </div>
+            <div class="detalle-item">
+              <label><i class="fas fa-crown"></i> Roles:</label>
+              <span class="roles-list">
+                @for (rol of usuarioDetalle()!.roles; track rol) {
+                  <span class="badge" [class.admin]="rol === 'admin'">{{ rol }}</span>
+                }
+              </span>
+            </div>
+            <div class="detalle-item">
+              <label><i class="fas fa-toggle-on"></i> Estado:</label>
+              <span class="estado" [class.activo]="usuarioDetalle()!.status === 'activo'">
+                {{ usuarioDetalle()!.status === 'activo' ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            <div class="detalle-item">
+              <label><i class="fas fa-calendar"></i> Creado:</label>
+              <span>{{ formatearFecha(usuarioDetalle()!.createdAt) }}</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="cerrarModalDetalles()">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal de cambiar contrasea -->
+@if (mostrarModalPassword()) {
+  <div class="modal-overlay" (click)="cerrarModalPassword()">
+    <div class="modal-content modal-small" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-key"></i> Cambiar Contrasea</h3>
+        <button class="btn-close" (click)="cerrarModalPassword()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="info-message">
+          Cambiando contrasea para: <strong>{{ usuarioParaPassword()?.username }}</strong>
+        </p>
+        
+        <form class="usuario-form">
+          <div class="form-group">
+            <label for="nueva-password">
+              <i class="fas fa-lock"></i>
+              Nueva Contraseña *
+            </label>
+            <div class="password-input-container">
+              <input 
+                id="nueva-password"
+                [type]="mostrarNuevaPassword() ? 'text' : 'password'" 
+                [value]="nuevaPassword()"
+                (input)="nuevaPassword.set($any($event.target).value)"
+                placeholder="Mínimo 6 caracteres"
+                required>
+              <button 
+                type="button" 
+                class="toggle-password-btn" 
+                (click)="toggleNuevaPasswordVisibility()"
+                [attr.aria-label]="mostrarNuevaPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                <i class="fas" [class.fa-eye]="!mostrarNuevaPassword()" [class.fa-eye-slash]="mostrarNuevaPassword()"></i>
+              </button>
+            </div>
+            <small class="form-hint">La contraseña debe tener al menos 6 caracteres</small>
+          </div>
+
+          <div class="form-group">
+            <label for="confirmar-password">
+              <i class="fas fa-lock"></i>
+              Confirmar Contraseña *
+            </label>
+            <div class="password-input-container">
+              <input 
+                id="confirmar-password"
+                [type]="mostrarConfirmarPassword() ? 'text' : 'password'" 
+                [value]="confirmarPassword()"
+                (input)="confirmarPassword.set($any($event.target).value)"
+                placeholder="Repetir contraseña"
+                required>
+              <button 
+                type="button" 
+                class="toggle-password-btn" 
+                (click)="toggleConfirmarPasswordVisibility()"
+                [attr.aria-label]="mostrarConfirmarPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                <i class="fas" [class.fa-eye]="!mostrarConfirmarPassword()" [class.fa-eye-slash]="mostrarConfirmarPassword()"></i>
+              </button>
+            </div>
+          </div>
+
+          @if (nuevaPassword().length > 0 && confirmarPassword().length > 0 && nuevaPassword() !== confirmarPassword()) {
+            <div class="mensaje error">
+              <i class="fas fa-exclamation-triangle"></i>
+              Las contraseas no coinciden
+            </div>
+          }
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="cerrarModalPassword()">
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn-primary" 
+          (click)="cambiarPasswordUsuario()"
+          [disabled]="cambiandoPassword() || nuevaPassword().length < 6 || nuevaPassword() !== confirmarPassword()">
+          @if (cambiandoPassword()) {
+            <i class="fas fa-spinner fa-spin"></i>
+            Cambiando...
+          } @else {
+            <i class="fas fa-save"></i>
+            Cambiar Contrasea
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

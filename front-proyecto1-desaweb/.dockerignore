@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Build outputs
+dist/
+build/
+
+# Runtime files
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Angular specific
+e2e/
+coverage/
+.nyc_output/
+.angular/
+
+# Git files
+.git/
+.gitignore
+
+# Docker files
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Documentation
+README.md
+*.md
+
+# Test files
+src/**/*.spec.ts
+src/**/*.test.ts
+karma.conf.js
+protractor.conf.js

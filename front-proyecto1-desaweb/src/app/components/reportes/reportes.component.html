@@ -1,0 +1,157 @@
+<div class="reportes-container">
+  <!-- Mensajes -->
+  @if (mensaje()) {
+    <div class="alert alert-success">
+      <i class="fas fa-check-circle"></i>
+      {{ mensaje() }}
+    </div>
+  }
+
+  @if (error()) {
+    <div class="alert alert-danger">
+      <i class="fas fa-exclamation-circle"></i>
+      {{ error() }}
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="loading-overlay">
+      <div class="spinner"></div>
+      <p>Generando reporte PDF...</p>
+    </div>
+  }
+
+  <!-- Grid de Reportes -->
+  <div class="reportes-grid">
+    
+    <!-- RF-REP-01: Reporte de Todos los Equipos -->
+    <div class="reporte-card">
+      <div class="card-icon">
+        <i class="fas fa-users"></i>
+      </div>
+      <h3>Reporte de Equipos</h3>
+      <p>Lista completa de todos los equipos registrados con sus estadísticas</p>
+      <button 
+        class="btn btn-primary" 
+        (click)="generarReporteTodosEquipos()"
+        [disabled]="isLoading()">
+        <i class="fas fa-download"></i>
+        Generar PDF
+      </button>
+    </div>
+
+    <!-- RF-REP-02: Reporte de Jugadores por Equipo -->
+    <div class="reporte-card">
+      <div class="card-icon">
+        <i class="fas fa-user-friends"></i>
+      </div>
+      <h3>Jugadores por Equipo</h3>
+      <p>Información detallada de jugadores de un equipo específico</p>
+      
+      <div class="form-group">
+        <label for="equipoSelect">Seleccionar Equipo:</label>
+        <select 
+          id="equipoSelect"
+          class="form-control"
+          [value]="equipoSeleccionado()"
+          (change)="equipoSeleccionado.set($any($event.target).value ? +$any($event.target).value : null)">
+          <option [value]="null">-- Selecciona un equipo --</option>
+          @for (equipo of equipos(); track equipo.id) {
+            <option [value]="equipo.id">{{ equipo.nombre }}</option>
+          }
+        </select>
+      </div>
+      
+      <button 
+        class="btn btn-primary" 
+        (click)="generarReporteJugadoresEquipo()"
+        [disabled]="isLoading() || !equipoSeleccionado()">
+        <i class="fas fa-download"></i>
+        Generar PDF
+      </button>
+    </div>
+
+    <!-- RF-REP-03: Historial de Partidos -->
+    <div class="reporte-card">
+      <div class="card-icon">
+        <i class="fas fa-history"></i>
+      </div>
+      <h3>Historial de Partidos</h3>
+      <p>Registro completo de todos los partidos jugados con marcadores finales</p>
+      <button 
+        class="btn btn-primary" 
+        (click)="generarReporteHistorialPartidos()"
+        [disabled]="isLoading()">
+        <i class="fas fa-download"></i>
+        Generar PDF
+      </button>
+    </div>
+
+    <!-- RF-REP-04: Roster por Partido -->
+    <div class="reporte-card">
+      <div class="card-icon">
+        <i class="fas fa-clipboard-list"></i>
+      </div>
+      <h3>Roster por Partido</h3>
+      <p>Jugadores asignados y estadísticas de un partido específico</p>
+      
+      <div class="form-group">
+        <label for="partidoSelect">Seleccionar Partido:</label>
+        <select 
+          id="partidoSelect"
+          class="form-control"
+          [value]="partidoSeleccionado()"
+          (change)="partidoSeleccionado.set($any($event.target).value ? +$any($event.target).value : null)">
+          <option [value]="null">-- Selecciona un partido --</option>
+          @for (partido of partidos(); track partido.id) {
+            <option [value]="partido.id">
+              {{ partido.equipoLocalNombre }} vs {{ partido.equipoVisitanteNombre }}
+            </option>
+          }
+        </select>
+      </div>
+      
+      <button 
+        class="btn btn-primary" 
+        (click)="generarReporteRosterPartido()"
+        [disabled]="isLoading() || !partidoSeleccionado()">
+        <i class="fas fa-download"></i>
+        Generar PDF
+      </button>
+    </div>
+
+    <!-- RF-REP-05: Estadísticas por Jugador -->
+    <div class="reporte-card">
+      <div class="card-icon">
+        <i class="fas fa-chart-bar"></i>
+      </div>
+      <h3>Estadísticas por Jugador</h3>
+      <p>Resumen completo de puntos, rebotes, asistencias y más</p>
+      
+      <div class="form-group">
+        <label for="jugadorSelect">Seleccionar Jugador:</label>
+        <select 
+          id="jugadorSelect"
+          class="form-control"
+          [value]="jugadorSeleccionado()"
+          (change)="jugadorSeleccionado.set($any($event.target).value || null)">
+          <option [value]="null">-- Selecciona un jugador --</option>
+          @for (jugador of jugadores(); track jugador._id) {
+            <option [value]="jugador._id">
+              {{ jugador.nombreCompleto || (jugador.nombre + ' ' + jugador.apellidos) }}
+            </option>
+          }
+        </select>
+      </div>
+      
+      <button 
+        class="btn btn-primary" 
+        (click)="generarReporteEstadisticasJugador()"
+        [disabled]="isLoading() || !jugadorSeleccionado()">
+        <i class="fas fa-download"></i>
+        Generar PDF
+      </button>
+    </div>
+
+  </div>
+</div>
