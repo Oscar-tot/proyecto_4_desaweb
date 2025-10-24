@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # SQL SERVER - Para teams-service y report-service
+  # ============================================
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: microservices-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=MicroServices2024!
+      - MSSQL_PID=Developer
+    ports:
+      - "1434:1433"  # Puerto 1434 local para no conflictuar con tu SQL Server existente
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P MicroServices2024! -Q 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # MYSQL - Para auth-service y matches-service
+  # ============================================
+  mysql:
+    image: mysql:8.0
+    container_name: microservices-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=MicroServices2024!
+      - MYSQL_DATABASE=auth_service_db
+    ports:
+      - "3307:3306"  # Puerto 3307 local
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init-scripts/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pMicroServices2024!"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # MONGODB - Para players-service
+  # ============================================
+  mongodb:
+    image: mongo:7.0
+    container_name: microservices-mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=MicroServices2024!
+      - MONGO_INITDB_DATABASE=players_service_db
+    ports:
+      - "27018:27017"  # Puerto 27018 local
+    volumes:
+      - mongodb_data:/data/db
+      - ./init-scripts/mongodb:/docker-entrypoint-initdb.d
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # RABBITMQ - Message Broker para eventos
+  # ============================================
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: microservices-rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=MicroServices2024!
+    ports:
+      - "5673:5672"   # AMQP puerto
+      - "15673:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # TEAMS-SERVICE - .NET 8 + SQL Server
+  # ============================================
+  teams-service:
+    build:
+      context: ./teams-service
+      dockerfile: Dockerfile
+    container_name: teams-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=teams_service_db;User Id=sa;Password=MicroServices2024!;TrustServerCertificate=True;
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__Username=admin
+      - RabbitMQ__Password=MicroServices2024!
+    ports:
+      - "5001:8080"  # Puerto 5001 local
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    volumes:
+      - ./teams-service:/app
+      - teams_uploads:/app/wwwroot/uploads
+
+networks:
+  microservices-network:
+    driver: bridge
+
+volumes:
+  sqlserver_data:
+  mysql_data:
+  mongodb_data:
+  rabbitmq_data:
+  teams_uploads:

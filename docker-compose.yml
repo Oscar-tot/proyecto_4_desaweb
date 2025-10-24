@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # Backend service (.NET)
+  backend:
+    build:
+      context: ./backend-proyecto1-desaweb
+      dockerfile: Dockerfile
+    container_name: scoreboard_backend
+    network_mode: "host"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5260
+      - JWT_SECRET_KEY=desawebsegundoproyecto123_clave_jwt_segura_256_bits_minimo_requerido
+      - DB_HOST=127.0.0.1
+      - DB_PORT=1433
+      - DB_NAME=Desarrollo_web
+      - DB_USER=sa
+      - DB_PASSWORD=fjRcT5f3i6EZaTquWtUR
+    volumes:
+      - uploads_data:/app/wwwroot/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5260/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend service (Angular)
+  frontend:
+    build:
+      context: ./front-proyecto1-desaweb
+      dockerfile: Dockerfile
+    container_name: scoreboard_frontend
+    network_mode: "host"
+    restart: unless-stopped
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: scoreboard_nginx
+    network_mode: "host"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  uploads_data:
+    driver: local
