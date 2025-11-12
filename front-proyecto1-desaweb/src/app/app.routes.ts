@@ -7,10 +7,12 @@ import { UserGuard } from './guards/user.guard';
 import { UnauthorizedComponent } from './components/unauthorized.component';
 import { UserDashboardComponent } from './components/user-dashboard.component';
 import { ReportesComponent } from './components/reportes/reportes.component';
+import { OauthCallbackComponent } from './components/oauth-callback.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
+  { path: 'auth/oauth-callback', component: OauthCallbackComponent },
   
   // Rutas para administradores
   { 

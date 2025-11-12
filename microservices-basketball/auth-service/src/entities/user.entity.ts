@@ -29,12 +29,22 @@ export class User {
   @Column({ unique: true, length: 50 })
   username: string;
 
-  @Column({ length: 255 })
+  @Column({ length: 255, nullable: true })
   @Exclude()
   password: string;
 
   @Column({ length: 100 })
   firstName: string;
+
+  // OAuth fields
+  @Column({ length: 50, nullable: true })
+  provider: string; // 'local', 'google', 'facebook', 'github'
+
+  @Column({ length: 255, nullable: true })
+  providerId: string; // ID del proveedor OAuth
+
+  @Column({ type: 'text', nullable: true })
+  profilePicture: string; // URL de la foto de perfil
 
   @Column({ length: 100 })
   lastName: string;

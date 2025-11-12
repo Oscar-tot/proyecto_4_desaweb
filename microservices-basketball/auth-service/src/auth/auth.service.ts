@@ -191,6 +191,93 @@ export class AuthService {
     return { message: 'Password changed successfully' };
   }
 
+  async validateOAuthLogin(oauthUser: {
+    provider: string;
+    providerId: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    profilePicture?: string;
+  }) {
+    // Buscar usuario por provider y providerId
+    let user = await this.userRepository.findOne({
+      where: {
+        provider: oauthUser.provider,
+        providerId: oauthUser.providerId,
+      },
+      relations: ['roles'],
+    });
+
+    if (!user) {
+      // Si no existe, buscar por email
+      user = await this.userRepository.findOne({
+        where: { email: oauthUser.email },
+        relations: ['roles'],
+      });
+
+      if (user) {
+        // Usuario existe con el mismo email pero diferente provider
+        // Actualizar con datos de OAuth
+        user.provider = oauthUser.provider;
+        user.providerId = oauthUser.providerId;
+        user.profilePicture = oauthUser.profilePicture;
+        await this.userRepository.save(user);
+      } else {
+        // Crear nuevo usuario
+        let userRole = await this.roleRepository.findOne({
+          where: { name: RoleType.USER },
+        });
+
+        if (!userRole) {
+          userRole = this.roleRepository.create({
+            name: RoleType.USER,
+            description: 'Usuario estándar',
+          });
+          await this.roleRepository.save(userRole);
+        }
+
+        // Generar username único basado en email
+        const baseUsername = oauthUser.email.split('@')[0];
+        let username = baseUsername;
+        let counter = 1;
+        
+        while (await this.userRepository.findOne({ where: { username } })) {
+          username = `${baseUsername}${counter}`;
+          counter++;
+        }
+
+        user = this.userRepository.create({
+          email: oauthUser.email,
+          username,
+          firstName: oauthUser.firstName,
+          lastName: oauthUser.lastName,
+          provider: oauthUser.provider,
+          providerId: oauthUser.providerId,
+          profilePicture: oauthUser.profilePicture,
+          password: null, // OAuth users don't have password
+          isEmailVerified: true, // OAuth providers verify emails
+          roles: [userRole],
+          status: UserStatus.ACTIVE,
+        });
+
+        await this.userRepository.save(user);
+      }
+    }
+
+    // Actualizar último login
+    user.lastLogin = new Date();
+    await this.userRepository.save(user);
+
+    // Generar tokens
+    const tokens = await this.generateTokens(user);
+
+    return {
+      message: 'OAuth login successful',
+      user: this.sanitizeUser(user),
+      ...tokens,
+    };
+  }
+
   private async generateTokens(user: User, userAgent?: string, ipAddress?: string) {
     const payload = {
       sub: user.id,

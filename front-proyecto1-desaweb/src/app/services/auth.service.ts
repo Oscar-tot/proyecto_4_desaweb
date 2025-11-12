@@ -151,8 +151,17 @@ export class AuthService {
       this.currentUser.set(usuario);
       this.authStatusSubject.next(true);
     } else {
-      // Si no hay datos válidos, limpiar todo
-      this.logout();
+      // Si no hay datos válidos, solo limpiar silenciosamente (sin redirigir)
+      sessionStorage.removeItem(this.tokenKey);
+      sessionStorage.removeItem(this.usuarioKey);
+      sessionStorage.removeItem('refresh_token');
+      localStorage.removeItem(this.tokenKey);
+      localStorage.removeItem(this.usuarioKey);
+      localStorage.removeItem('refresh_token');
+      
+      this.isAuthenticated.set(false);
+      this.currentUser.set(null);
+      this.authStatusSubject.next(false);
     }
   }
 

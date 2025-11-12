@@ -1,9 +1,10 @@
-import { Controller, All, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, All, Req, Res, UseGuards, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { ProxyService } from './proxy.service';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import axios from 'axios';
 
 @ApiTags('auth')
 @Controller()
@@ -13,6 +14,121 @@ export class AuthProxyController {
     private readonly proxyService: ProxyService,
     private readonly configService: ConfigService,
   ) {}
+
+  // ============================================
+  // RUTAS OAUTH - Proxy con seguimiento de redirecciones
+  // ============================================
+  
+  @Get('auth/google')
+  @ApiOperation({ summary: 'Iniciar autenticación con Google' })
+  async googleAuth(@Req() req: Request, @Res() res: Response) {
+    await this.handleOAuthRedirect(req, res, '/api/auth/google');
+  }
+
+  @Get('auth/google/callback')
+  @ApiOperation({ summary: 'Callback de Google OAuth' })
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
+    await this.handleOAuthCallback(req, res, '/api/auth/google/callback');
+  }
+
+  @Get('auth/facebook')
+  @ApiOperation({ summary: 'Iniciar autenticación con Facebook' })
+  async facebookAuth(@Req() req: Request, @Res() res: Response) {
+    await this.handleOAuthRedirect(req, res, '/api/auth/facebook');
+  }
+
+  @Get('auth/facebook/callback')
+  @ApiOperation({ summary: 'Callback de Facebook OAuth' })
+  async facebookCallback(@Req() req: Request, @Res() res: Response) {
+    await this.handleOAuthCallback(req, res, '/api/auth/facebook/callback');
+  }
+
+  @Get('auth/github')
+  @ApiOperation({ summary: 'Iniciar autenticación con GitHub' })
+  async githubAuth(@Req() req: Request, @Res() res: Response) {
+    await this.handleOAuthRedirect(req, res, '/api/auth/github');
+  }
+
+  @Get('auth/github/callback')
+  @ApiOperation({ summary: 'Callback de GitHub OAuth' })
+  async githubCallback(@Req() req: Request, @Res() res: Response) {
+    await this.handleOAuthCallback(req, res, '/api/auth/github/callback');
+  }
+
+  // ============================================
+  // Métodos auxiliares para OAuth
+  // ============================================
+
+  private async handleOAuthRedirect(req: Request, res: Response, path: string) {
+    const serviceUrl = this.configService.get('AUTH_SERVICE_URL');
+    const fullUrl = `${serviceUrl}${path}`;
+    
+    console.log('🔄 OAuth Inicio:', fullUrl);
+    
+    try {
+      // Hacer request al auth-service SIN seguir redirecciones
+      const response = await axios.get(fullUrl, {
+        maxRedirects: 0, // No seguir redirecciones automáticamente
+        validateStatus: (status) => status >= 200 && status < 400, // Aceptar 3xx
+      });
+
+      // Si el auth-service devuelve una redirección, reenviarla al navegador
+      if (response.status >= 300 && response.status < 400) {
+        const redirectUrl = response.headers.location;
+        console.log('  ↪️ Redirigiendo a:', redirectUrl);
+        return res.redirect(redirectUrl);
+      }
+
+      // Si es una respuesta normal, enviarla
+      return res.status(response.status).send(response.data);
+    } catch (error) {
+      if (error.response && error.response.status >= 300 && error.response.status < 400) {
+        // Axios lanza error en redirecciones si maxRedirects: 0
+        const redirectUrl = error.response.headers.location;
+        console.log('  ↪️ Redirigiendo a:', redirectUrl);
+        return res.redirect(redirectUrl);
+      }
+      console.error('❌ Error en OAuth redirect:', error.message);
+      return res.status(500).json({ error: 'OAuth initialization failed' });
+    }
+  }
+
+  private async handleOAuthCallback(req: Request, res: Response, path: string) {
+    const serviceUrl = this.configService.get('AUTH_SERVICE_URL');
+    const queryString = new URLSearchParams(req.query as any).toString();
+    const fullUrl = `${serviceUrl}${path}?${queryString}`;
+    
+    console.log('🔙 OAuth Callback:', fullUrl);
+    
+    try {
+      // Hacer request al auth-service SIN seguir redirecciones
+      const response = await axios.get(fullUrl, {
+        maxRedirects: 0,
+        validateStatus: (status) => status >= 200 && status < 400,
+      });
+
+      // Si el auth-service devuelve una redirección al frontend, reenviarla
+      if (response.status >= 300 && response.status < 400) {
+        const redirectUrl = response.headers.location;
+        console.log('  ✅ Redirigiendo al frontend:', redirectUrl);
+        return res.redirect(redirectUrl);
+      }
+
+      return res.status(response.status).send(response.data);
+    } catch (error) {
+      if (error.response && error.response.status >= 300 && error.response.status < 400) {
+        const redirectUrl = error.response.headers.location;
+        console.log('  ✅ Redirigiendo al frontend:', redirectUrl);
+        return res.redirect(redirectUrl);
+      }
+      console.error('❌ Error en OAuth callback:', error.message);
+      return res.status(500).json({ error: 'OAuth callback failed' });
+    }
+  }
+
+  // ============================================
+  // RUTAS NORMALES - Proxy JSON
+  // ============================================
 
   @All('auth/*')
   @ApiOperation({ summary: 'Proxy a Auth Service - Authentication' })
